@@ -1,0 +1,13 @@
+#folders to ignore
+.idea/
+venv/
+data/
+Planet_img_metadata/
+MADmap/
+#file formats to ignore
+*.csv
+*.geojson
+*.txt
+*.toml
+*.yaml
+*.qgz
