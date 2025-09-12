@@ -10,23 +10,21 @@ from NOAA_API_pull import tide_pull
 #date format "YYYYMMDD"
 start = "20200131"
 end = "20250820"
-thresh = 1.0
+thresh = 1.0 #maximum acceptable tide levels
 station = "charleston"
-#Charleston
-#count @ 1.5 m thresh = 1910
-#count @ 1.0 m thresh = 1090
-#count @ 0.5 m thresh = 417
+
+#call on the tide script function to get tide windows
 tide_pull(thresh=thresh,begindate=start,endate=end,station=station)
 
 #bring in img geojson
 with open("./data/collection_ortho_analytic_8b_sr.geojson") as f:
     imgs = geojson.load(f)
 
-#add tides
+#add tides to csv files
 tides = open("lowtide_periods.csv","r")
 chosenfew = open("ideal_imgs.txt","w")
 count = 0
-#get the date periods:
+#get the datetime periods:
 for line in tqdm(tides):
     begin, end = line.split(sep=" - ")
 

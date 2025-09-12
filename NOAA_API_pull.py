@@ -3,7 +3,7 @@ from noaa_coops import Station
 
 #establish station codes in a dictionary
 ACE_tide_stations = {
-    'charleston' : '8665530',
+    'charleston' : '8665530', #for some reason ONLY charleston works currently?
     'mosquito_creek' : '8667209',
     'AC_cutoff_ICWW' : '8667482'
 }

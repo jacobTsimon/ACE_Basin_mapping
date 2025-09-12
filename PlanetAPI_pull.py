@@ -4,11 +4,12 @@ import requests
 import yaml
 from dateutil.parser import parse
 
-# Helper function to printformatted JSON using the json module
+# Helper function to print formatted JSON using the json module
 def p(data):
     print(json.dumps(data, indent=2))
 
 #load in API key from dedicated yaml file (github privacy)
+#will need to provide your own API key!
 f = open("PL_API_KEY.yaml","r")
 keyF = yaml.safe_load(f)
 key = keyF["key"]
@@ -266,6 +267,7 @@ geojson = res2.json()
 
 #function for getting next link taken from their git repo:
 #https://github.com/planetlabs/notebooks/blob/master/jupyter-notebooks/Analytics-API/quickstart/02_fetching_feed_results.ipynb
+
 #I modified it since the syntax they used seemed to be out of date (uses "rel" and links without the _)
 def get_next_link(results_json):
     """Given a response json from one page of subscription results,
