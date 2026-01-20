@@ -1,3 +1,4 @@
+#this file is copied into QGIS built-in python terminal
 import processing
 from qgis.core import *
 import qgis.utils
