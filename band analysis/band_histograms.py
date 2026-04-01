@@ -3,14 +3,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_band_histograms(tif_file_path,title = 'default title'):
+def plot_band_histograms(tif_file_path,title = 'default title',index =False):
 
     with rasterio.open(tif_file_path) as src:
         num_bands = src.count
         print(f"Number of bands found: {num_bands}")
-
-        planetbands = ["Coastal Blue","Blue","Green I", "Green","Yellow","Red","Red Edge","NIR"] if num_bands > 1 else ["NDWI"]
-        colors = ['c','b','mediumseagreen','g','y','r','m','darkred']
+        if index:
+            b = input("index abbr. :")
+            c = input("clor code :")
+            planetbands = [b]
+            colors = [c]
+        else:
+            planetbands = ["Coastal Blue","Blue","Green I", "Green","Yellow","Red","Red Edge","NIR"]
+            colors = ['c','b','mediumseagreen','g','y','r','m','darkred']
 
         # Determine the number of rows/columns for the subplot grid
         # A simple grid of 2 rows is used if there are more than 1 band
@@ -61,7 +66,7 @@ def plot_band_histograms(tif_file_path,title = 'default title'):
         plt.show()
 
 
-
-tif_path = '/151127_BG_NDWI.tif'
-title = "Background pixels (img 151127, June 2023)"
-plot_band_histograms(tif_path,title = title)
+dirpath = '/home/hopkinsonlab/Desktop/ACE_Basin_mapping'
+tif_path = dirpath + '/whole317814WP.tif'
+title = "Wrack pixels(img 317814, Sept 2025)"
+plot_band_histograms(tif_path,title = title)#,index = True

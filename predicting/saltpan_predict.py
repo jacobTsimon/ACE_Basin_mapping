@@ -129,8 +129,8 @@ def Z1Norm(input,bands,vis = True):
     return t_n
 
 
-modpath = '/home/hopkinsonlab/Desktop/ACE_Basin_mapping/training/saved_models/itB_run6.pth'
-UNet = U_Net(in_channels=7,out_channels=4)
+modpath = '/home/hopkinsonlab/Desktop/ACE_Basin_mapping/training/saved_models/WM_run1.pth'
+UNet = U_Net(in_channels=7,out_channels=2)
 #RF = pickle.load(open('./saved_models/bestRFmod3.pickle','rb'))
 
 
@@ -139,7 +139,7 @@ UNet.load_state_dict(torch.load(modpath))
 val_data = '/home/hopkinsonlab/Desktop/ACE_Basin_mapping/training/imgs/val_clips/'
 imgPlanet = PlanetScope(val_data)
 
-val_truth = '/home/hopkinsonlab/Desktop/ACE_Basin_mapping/training/imgs/masks/val/'
+val_truth = '/home/hopkinsonlab/Desktop/ACE_Basin_mapping/training/imgs/WMval_clips/'
 truth = PlanetMask(val_truth)
 elev = ElevationData('/home/hopkinsonlab/Desktop/ACE_Basin_mapping/training/imgs/elev')
 img = imgPlanet & truth & elev
@@ -202,12 +202,17 @@ with torch.no_grad():
         x = addIndicesV(x)
         #x = x[:, 0:3, :, :]
         predmap = UNet(x)
+        print(predmap.shape)
+        print(np.unique(predmap))
         predmap1 = predmap.argmax(dim=1)
+        print(predmap1)
+
+        print(predmap1.shape)
         print("Unique pred vals: ",np.unique(predmap1))
         #tot_batch = batch + predmap
         _,axs = plt.subplots(nrows=3,ncols=1)
         #plot_batch(batch,nrows = 3)
-        print(axs)
+
         print(np.unique(batch['mask']))
         # batch['mask'][batch['mask'] != 0] = 1
         # x1 = torch.flatten(x[0, :, :, :], start_dim=1, end_dim=2)  # ,start_dim=1,end_dim=2
@@ -252,7 +257,7 @@ with torch.no_grad():
         axs[1].imshow(t1)
         #axs[1][1].imshow(t2)
         #axs[1][2].imshow(t3)
-        axs[2].imshow(predmap1[0],cmap = "Accent")
+        axs[2].imshow(predmap1[0,:,:],cmap = "Accent")
         #axs[2][1].imshow(predmap1[1],cmap = "Accent")
         #axs[2][2].imshow(predmap1[2],cmap = "Accent")
         # axs[3][0].imshow(predmap2_1,cmap = "Blues")
