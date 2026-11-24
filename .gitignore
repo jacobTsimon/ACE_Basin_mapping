@@ -4,6 +4,7 @@ venv/
 data/
 Planet_img_metadata/
 MADmap/
+roi_shpfiles/
 #file formats to ignore
 *.csv
 *.geojson
@@ -11,3 +12,5 @@ MADmap/
 *.toml
 *.yaml
 *.qgz
+*.tif
+*.xml

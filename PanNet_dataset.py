@@ -1,17 +1,11 @@
 import torch
-import torchvision
-import torchgeo
-
-import torchvision.transforms as transforms
-import numpy as np
-from torchgeo.transforms import indices
 import matplotlib.pyplot as plt
 from PIL import Image
 
 ##RATIO OF BACKGROUND TO PAN PIXELS IS 1280:1
 
 
-##CREATE RANDOM SAMPLER
+
 
 #create RandomGeoSampler
 from torchgeo.datasets import RasterDataset, unbind_samples,stack_samples
@@ -19,16 +13,40 @@ from torchgeo.samplers import RandomGeoSampler
 from torch.utils.data import DataLoader
 from torchgeo.samplers import Units
 import rasterio
+import numpy as np
+from torchgeo.transforms import AppendNDWI,AppendNDVI
+from torchvision.transforms import v2
+from helper_functions import MinMaxNormalize
 
 #identify folder containing data
 trainDS = './imgs/scenes/'
 trainTRUTH = './imgs/masks/'
 
+
+CJ = v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=None)
+addIndicesT = v2.Compose([ # currently configured for 8 band images
+
+    #MinMaxNormalize(min = TMin,max=TMax),
+    v2.RandomHorizontalFlip(p=0.5),
+    v2.RandomVerticalFlip(p=0.5),
+    v2.RandomRotation(degrees=90),
+
+    AppendNDVI(index_nir=3, index_red=2),
+    AppendNDWI(index_nir=3, index_green=1)
+])
+#validation transforms
+addIndicesV = v2.Compose([
+
+    #MinMaxNormalize(min=VMin, max=VMax),
+    AppendNDVI(index_nir=4, index_red=3),
+    AppendNDWI(index_nir=4, index_green=2)
+])
+
 #create raster dataset (from custom raster doc: https://torchgeo.readthedocs.io/en/stable/tutorials/custom_raster_dataset.html)
 class PlanetScope(RasterDataset):
 
     filename_glob = '**/*.tif'  # "2022*_3B_*.tif" 20230628_*
-    filename_regex = "^(?P<date>\d{4}_\d{2}_\d{2}).*.tif$"  # ^(?P<date>\d{8}_\d{6})_.{2}_.{4}_(3B_*).*"
+    filename_regex = "^.*(?P<date>\d{4}_\d{2}_\d{2}).*.tif$"  # ^(?P<date>\d{8}_\d{6})_.{2}_.{4}_(3B_*).*"
     date_format = "%Y_%m_%d"
     is_image = True
     separate_files = False
@@ -37,6 +55,8 @@ class PlanetScope(RasterDataset):
     #currently only using RGB and NIR
     all_bands = ["1", "2", "3", "4"] #, "5","6","7","8"
     rgb_bands = ["3", "2", "1"]
+
+
 
     def plot(self, sample):
         # Find the correct band index order
@@ -84,18 +104,39 @@ class ElevationData(RasterDataset):
 
     is_image = True
     separate_files = False
-    all_bands = ["1"]
+    all_bands = ["ELEV01"]
 
 #NEED AN NDVI DATASET CLASS
-class NDVIData(RasterDataset):
+class NWIData(RasterDataset):
 
     #transforms = transform
-    filename_glob = "**/NDVI_*.tif"
-    filename_regex = "^NDVI*.tif$"
+    filename_glob = "**/*.tif"
+    filename_regex = ".*.tif$"
 
     is_image = True
     separate_files = False
-    all_bands = ["1"]
+    all_bands = ["NWI01"]
+
+#slope set
+class SlopeData(RasterDataset):
+
+    #transforms = transform
+    filename_glob = "**/*.tif"
+    filename_regex = ".*.tif$"
+
+    is_image = True
+    separate_files = False
+    all_bands = ["SLOPE01"]
+
+class CreekProxData(RasterDataset):
+
+    #transforms = transform
+    filename_glob = "**/*.tif"
+    filename_regex = ".*.tif$"
+
+    is_image = True
+    separate_files = False
+    all_bands = ["SLOPE01"]
 
 #Annotation masks load in here
 class PlanetMask(RasterDataset):
@@ -162,16 +203,25 @@ def plot_batch(batch: dict, bright: float = 3., cols: int = 3, width: int = 5, c
 
 #trial temporal wrapper
 import random
+import pandas
 class RandomTemporalDataset:
-    """Randomly select one temporal dataset that contains the query (UNION version)"""
+    #Randomly select one temporal dataset that contains the query (UNION version)
 
     def __init__(self, datasets_list):
         self.datasets = datasets_list
+        self.length = len(datasets_list)
 
         # Use first dataset's properties
         first_ds = datasets_list[0]
         self._crs = first_ds.crs
         self._res = first_ds.res
+
+
+        # Use first dataset's index
+        allind = [ind.index for ind in datasets_list]
+        oneind = pandas.concat(allind)
+        self.index = oneind
+        #print("INDEX",self.index,type(self.index))
 
         # Calculate UNION of all bounds
         all_bounds = [ds.bounds for ds in datasets_list]
@@ -197,9 +247,9 @@ class RandomTemporalDataset:
             slice(miny, maxy, y_step),
             slice(mint, maxt, t_step)
         )
+        print("BOUNDS",self._bounds)
 
-        # Use first dataset's index
-        self.index = first_ds.index
+
 
     def __getitem__(self, query):
         # Query format: (slice(minx, maxx), slice(miny, maxy), slice(mint, maxt))
@@ -212,6 +262,7 @@ class RandomTemporalDataset:
 
         # Find datasets that contain this query
         valid_datasets = []
+
 
         for dataset in self.datasets:
             ds_minx = dataset.bounds[0].start
@@ -245,8 +296,20 @@ class RandomTemporalDataset:
                            for i, ds in enumerate(self.datasets)])
             )
 
-        # Randomly pick from valid datasets
+       # Randomly pick from valid datasets
+        #print("valid ds: ", valid_datasets)
         dataset = random.choice(valid_datasets)
+        #print("DS time",dataset.bounds[2])
+
+        #reset random index
+        # randind = random.randint(0, self.length - 1)
+        # print("INDEX CHOSEN: ", randind)
+        # self.index = self.datasets[randind].index
+        # #print("INDEX", self.index)
+        # dataset = self.datasets[randind]
+        #print("Chosen dataset: ", dataset)
+
+
         return dataset[query]
 
     @property
@@ -263,6 +326,5 @@ class RandomTemporalDataset:
 
     def __len__(self):
         return sum(len(ds) for ds in self.datasets)
-
 
 
